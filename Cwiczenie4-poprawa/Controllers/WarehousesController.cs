@@ -1,8 +1,10 @@
 ﻿using Cwiczenie4_poprawa.Models;
+using Cwiczenie4_poprawa.Models.DTO;
 using Cwiczenie4_poprawa.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Threading.Tasks;
 
 namespace Cwiczenie4_poprawa.Controllers
 {
@@ -18,10 +20,11 @@ namespace Cwiczenie4_poprawa.Controllers
         }
 
         [HttpPost]
-        public IActionResult PostProductInWarehouse(ProductWarehouse productWarehouse)
+        public async Task<IActionResult> PostProductInWarehouse(SomeSortOfWarehouse productWarehouse)
         {
-            bool checkProdukt = _service.CheckProductExist(productWarehouse.IdProduct);
-            bool checkWarehouse = _service.CheckWarehouseExist(productWarehouse.IdWarehouse);
+            //sprawdzenie produktu
+            bool checkProdukt = await _service.CheckProductExistAsync(productWarehouse.IdProduct);
+            bool checkWarehouse = await _service.CheckWarehouseExistAsync(productWarehouse.IdWarehouse);
             if (!checkProdukt)
                 return NotFound($"Nie znaleziono produktu o id {productWarehouse.IdProduct}");
             if(!checkWarehouse)
@@ -29,17 +32,25 @@ namespace Cwiczenie4_poprawa.Controllers
             if (productWarehouse.Amount <= 0)
                 return BadRequest($"Wartość Amount musi być większa od 0");
 
-            Order order = _service.FindPurchaseOrder(productWarehouse.IdProduct, productWarehouse.Amount, productWarehouse.CreatedAt);
+            //wyszukanie zamówienia spełniającego wymagania z naszym żądaniem
+            Order order = await _service.FindPurchaseOrderAsync(productWarehouse.IdProduct, productWarehouse.Amount, productWarehouse.CreatedAt);
             if (order == null)
                 return NotFound($"Nie znaleziono zamówienia, które spełnia warunki.");
 
-            bool checkOrderIsCompleted = _service.CheckOrderIsCompleted(productWarehouse.IdOrder);
+            //sprawdzenie czy zamówienie nie zostało już zrealizowane
+            bool checkOrderIsCompleted = await _service.CheckOrderIsCompletedAsync(order.IdOrder);
             if (checkOrderIsCompleted)
                 return Ok("Zlecenie zostało już zrealizowane");
 
+            //aktualizacja kolumny fulfilledAt
+            await _service.UpdateOrderAsync(order.IdOrder, order);
 
+            //wstawiamy rekord do tabeli Product_Warehouse
+            await _service.InsertProductWarehouse(productWarehouse);
+
+            ProductWarehouse pw = new ProductWarehouse { IdProductWarehouse = await _service.GetLastProductWarehouseId() };
   
-            return Created("",productWarehouse);
+            return Created("",pw.IdProductWarehouse);
         }
     }
 }

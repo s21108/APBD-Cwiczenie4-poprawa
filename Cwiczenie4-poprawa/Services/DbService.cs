@@ -1,4 +1,5 @@
 ﻿using Cwiczenie4_poprawa.Models;
+using Cwiczenie4_poprawa.Models.DTO;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -17,14 +18,14 @@ namespace Cwiczenie4_poprawa.Services
             _configuration = configuration;
         }
 
-        public bool CheckProductExist(int id)
+        public async Task <bool> CheckProductExistAsync(int id)
         {
             Product product = new Product();
             using(SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
             {
                 SqlCommand com = new SqlCommand($"select * from product where IdProduct = {id}",con);
-                con.Open();
-                SqlDataReader dr = com.ExecuteReader();
+                await con.OpenAsync();
+                SqlDataReader dr = await com.ExecuteReaderAsync();
                 while (dr.Read())
                 {
                     product = new Product { IdProduct = (int)dr["IdProduct"] };
@@ -34,15 +35,15 @@ namespace Cwiczenie4_poprawa.Services
                 return true;
             else return false;
         }
-        public bool CheckWarehouseExist(int id)
+        public async Task<bool> CheckWarehouseExistAsync(int id)
         {
             Warehouse warehouse = new Warehouse();
             using (SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
             {
                 SqlCommand com = new SqlCommand($"select * from warehouse where IdWarehouse = {id}", con);
-                con.Open();
-                SqlDataReader dr = com.ExecuteReader();
-                while (dr.Read())
+                await con.OpenAsync();
+                SqlDataReader dr = await com.ExecuteReaderAsync();
+                while (await dr.ReadAsync())
                 {
                     warehouse = new Warehouse { IdWarehouse = (int)dr["IdWarehouse"] };
                 }
@@ -52,31 +53,31 @@ namespace Cwiczenie4_poprawa.Services
             else return false;
         }
 
-        public IEnumerable<Order> GetOrders()
+        public async Task<IEnumerable<Order>> GetOrdersAsync()
         {
             List<Order> orders = new List<Order>();
             using (SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
             {
-                SqlCommand com = new SqlCommand($"select * from order", con);
-                con.Open();
-                SqlDataReader dr = com.ExecuteReader();
-                while (dr.Read())
+                SqlCommand com = new SqlCommand($"select * from [order]", con);
+                await con.OpenAsync();
+                SqlDataReader dr = await com.ExecuteReaderAsync();
+                while (await dr.ReadAsync())
                 {
-                    orders.Add(new Order { IdOrder = (int)dr["IdOrder"], Amount = (int)dr["Amount"], IdProduct = (int)dr["IdProduct"] });
+                    orders.Add(new Order { IdOrder = (int)dr["IdOrder"], Amount = (int)dr["Amount"], IdProduct = (int)dr["IdProduct"], CreatedAt = (DateTime)dr["CreatedAt"], FulfilledAt = (DateTime)dr["FulfilledAt"] });
                 }
             }
             return orders;
         }
 
-        public IEnumerable<ProductWarehouse> GetProductsWarehouses()
+        public async Task<IEnumerable<ProductWarehouse>> GetProductsWarehousesAsync()
         {
             List<ProductWarehouse> productWarehouses = new List<ProductWarehouse>();
             using (SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
             {
                 SqlCommand com = new SqlCommand($"select * from product_warehouse", con);
-                con.Open();
-                SqlDataReader dr = com.ExecuteReader();
-                while (dr.Read())
+                await con.OpenAsync();
+                SqlDataReader dr = await com.ExecuteReaderAsync();
+                while (await dr.ReadAsync())
                 {
                     productWarehouses.Add(new ProductWarehouse { IdProductWarehouse = (int)dr["IdProductWarehouse"], IdOrder = (int)dr["IdOrder"] });
                 }
@@ -84,20 +85,75 @@ namespace Cwiczenie4_poprawa.Services
             return productWarehouses;
         }
 
-        public Order FindPurchaseOrder(int idProduct, int amount, DateTime createdAt)
+        public async Task<Order> FindPurchaseOrderAsync(int idProduct, int amount, DateTime createdAt)
         {
-            var order = GetOrders().ToList().Where(x => x.IdProduct == idProduct && x.Amount == amount && x.CreatedAt < createdAt);
+            var orders = await GetOrdersAsync();
+            var order = orders.ToList().Where(x => x.IdProduct == idProduct && x.Amount == amount && x.CreatedAt < createdAt);
             return order.FirstOrDefault();
         }
 
-        public bool CheckOrderIsCompleted(int id)
+        public async Task<bool> CheckOrderIsCompletedAsync(int id)
         {
-            var order = GetProductsWarehouses().ToList().Where(x => x.IdOrder == id);
+            var orders = await GetProductsWarehousesAsync();
+            var order = orders.ToList().Where(x => x.IdOrder == id);
             if (order.Any())
                 return true;
             else return false;
         }
 
-        
+        public async Task UpdateOrderAsync(int id, Order order)
+        {
+            using(SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
+            {
+                var com = new SqlCommand($"update [order] set FulfilledAt = @param1 where IdOrder = @param2", con);
+                com.Parameters.AddWithValue("@param1",order.FulfilledAt);
+                com.Parameters.AddWithValue("@param2", id);
+                await con.OpenAsync();
+                await com.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<Product> GetProductByIdAsync(int id)
+        {
+            List<Product> products = new List<Product>();
+            using (SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
+            {
+                SqlCommand com = new SqlCommand($"select * from product", con);
+                await con.OpenAsync();
+                SqlDataReader dr = await com.ExecuteReaderAsync();
+                while (await dr.ReadAsync())
+                {
+                    products.Add(new Product { IdProduct = (int)dr["IdProduct"], Name = dr["Name"].ToString(), Price = (decimal)dr["Price"] });
+                }
+            }
+            return products.Where(x => x.IdProduct == id).FirstOrDefault();
+
+        }
+
+        public async Task InsertProductWarehouse(SomeSortOfWarehouse newProductWarehouse)
+        {
+            Order order = await FindPurchaseOrderAsync(newProductWarehouse.IdProduct,newProductWarehouse.Amount,newProductWarehouse.CreatedAt);
+            Product product = await GetProductByIdAsync(newProductWarehouse.IdProduct);
+            using (SqlConnection con = new SqlConnection(_configuration.GetConnectionString("Default")))
+            {
+                var com = new SqlCommand($"insert into product_warehouse (IdWarehouse, IdProduct, IdOrder, Amount, Price, CreatedAt)" +
+                    $"values (@param1, @param2, @param3, @param4, @param5, @param6)",con);
+                com.Parameters.AddWithValue("@param1", newProductWarehouse.IdWarehouse);
+                com.Parameters.AddWithValue("@param2", newProductWarehouse.IdProduct);
+                com.Parameters.AddWithValue("@param3", order.IdOrder);
+                com.Parameters.AddWithValue("@param4", newProductWarehouse.Amount);
+                com.Parameters.AddWithValue("@param5", product.Price * newProductWarehouse.Amount);
+                com.Parameters.AddWithValue("@param6", DateTime.Now);
+                await con.OpenAsync();
+                await com.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<int> GetLastProductWarehouseId()
+        {
+            var productWarehouses = await GetProductsWarehousesAsync();
+            var lastInt = productWarehouses.LastOrDefault().IdProductWarehouse;
+            return lastInt;
+        }
     }
 }
