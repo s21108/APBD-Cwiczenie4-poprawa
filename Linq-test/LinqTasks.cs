@@ -290,7 +290,7 @@ namespace Linq_test
         /// </summary>
         public static IEnumerable<Emp> Task12()
         {
-            return null;
+            return CustomExtensionMethods.GetEmpsWithSubordinates(Emps);
         }
 
         /// <summary>
@@ -320,6 +320,8 @@ namespace Linq_test
         //Put your extension methods here
         public static IEnumerable<Emp> GetEmpsWithSubordinates(this IEnumerable<Emp> emps)
         {
+            // var result = emps.Where(x => x.Mgr != null).OrderBy(x => x.Salary).OrderByDescending(x => x.Ename);
+            //return result;
             return null;
         }
 

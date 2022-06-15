@@ -32,6 +32,12 @@ namespace Linq_test
 
             var res9 = LinqTasks.Task9();
             Console.WriteLine("Test9: " + res9);
+
+            var res12 = LinqTasks.Task12();
+            foreach (Emp emp in res12)
+            {
+                Console.WriteLine(emp);
+            }
         }
     }
 }
