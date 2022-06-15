@@ -23,7 +23,7 @@ namespace Cwiczenie4_poprawa.Controllers
             var result = await _service.AddProductByProcedureAsync(someSortOfWarehouse.IdProduct, someSortOfWarehouse.IdWarehouse, someSortOfWarehouse.Amount, someSortOfWarehouse.CreatedAt);
             if (result != -1)
                 return Created("", result);
-            return Ok("Zlecenie zostało już zrealizowane");
+            return BadRequest("Bład wykonania zapytania");
         }
     }
 }
