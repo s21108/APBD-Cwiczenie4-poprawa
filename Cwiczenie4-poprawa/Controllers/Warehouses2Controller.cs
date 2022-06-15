@@ -18,10 +18,12 @@ namespace Cwiczenie4_poprawa.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> PostProductInWarehouse(SomeSortOfWarehouse productWarehouse)
+        public async Task<IActionResult> PostProductInWarehouse(SomeSortOfWarehouse someSortOfWarehouse)
         {
-
-            return Created("",productWarehouse);
+            var result = await _service.AddProductByProcedureAsync(someSortOfWarehouse.IdProduct, someSortOfWarehouse.IdWarehouse, someSortOfWarehouse.Amount, someSortOfWarehouse.CreatedAt);
+            if (result != -1)
+                return Created("", result);
+            return Ok("Zlecenie zostało już zrealizowane");
         }
     }
 }

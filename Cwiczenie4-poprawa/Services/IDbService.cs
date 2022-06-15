@@ -8,6 +8,7 @@ namespace Cwiczenie4_poprawa.Services
 {
     public interface IDbService
     {
+        Task<int> AddProductByProcedureAsync(int idProduct, int idWarehouse, int amount, DateTime createdAt);
         Task<bool> CheckOrderIsCompletedAsync(int id);
         Task<bool> CheckProductExistAsync(int id);
         Task<bool> CheckWarehouseExistAsync(int id);

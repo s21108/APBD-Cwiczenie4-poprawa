@@ -3,6 +3,7 @@ using Cwiczenie4_poprawa.Models.DTO;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
@@ -35,7 +36,7 @@ namespace Cwiczenie4_poprawa.Services
                     {
                         product = new Product { IdProduct = (int)dr["IdProduct"] };
                     }
-                    dr.Close();
+                    await dr.CloseAsync();
                     await tran.CommitAsync();
                 }
                 catch(SqlException)
@@ -68,7 +69,7 @@ namespace Cwiczenie4_poprawa.Services
                     {
                         warehouse = new Warehouse { IdWarehouse = (int)dr["IdWarehouse"] };
                     }
-                    dr.Close();
+                    await dr.CloseAsync();
                     await tran.CommitAsync();
                     
                 }
@@ -104,7 +105,7 @@ namespace Cwiczenie4_poprawa.Services
                     {
                         orders.Add(new Order { IdOrder = (int)dr["IdOrder"], Amount = (int)dr["Amount"], IdProduct = (int)dr["IdProduct"], CreatedAt = (DateTime)dr["CreatedAt"], FulfilledAt = (DateTime)dr["FulfilledAt"] });
                     }
-                    dr.Close();
+                    await dr.CloseAsync();
                     await tran.CommitAsync();
                 }
                 catch(SqlException)
@@ -135,7 +136,7 @@ namespace Cwiczenie4_poprawa.Services
                     {
                         productWarehouses.Add(new ProductWarehouse { IdProductWarehouse = (int)dr["IdProductWarehouse"], IdOrder = (int)dr["IdOrder"] });
                     }
-                    dr.Close();
+                    await dr.CloseAsync();
                     await tran.CommitAsync();
                     
                 }
@@ -210,7 +211,7 @@ namespace Cwiczenie4_poprawa.Services
                     {
                         products.Add(new Product { IdProduct = (int)dr["IdProduct"], Name = dr["Name"].ToString(), Price = (decimal)dr["Price"] });
                     }
-                    dr.Close();
+                    await dr.CloseAsync();
                     await tran.CommitAsync();
                     
                 }
@@ -268,9 +269,36 @@ namespace Cwiczenie4_poprawa.Services
             return lastInt;
         }
 
-        public async Task AddProductByProcedureAsync()
+        public async Task<int> AddProductByProcedureAsync(int idProduct, int idWarehouse, int amount, DateTime createdAt)
         {
+            int primaryKey = -1;
+            using var con = new SqlConnection(_configuration.GetConnectionString("Default"));
+            await con.OpenAsync(); 
+            SqlCommand command = con.CreateCommand();
+            DbTransaction tran = await con.BeginTransactionAsync();
+            try
+            {
+                command.Transaction = (SqlTransaction)tran;
+                command.Connection = con;
+                command.CommandText = "AddProductToWarehouse";
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.AddWithValue("@IdProduct", idProduct);
+                command.Parameters.AddWithValue("@IdWarehouse", idWarehouse);
+                command.Parameters.AddWithValue("@Amount", amount);
+                command.Parameters.AddWithValue("@CreatedAt", createdAt);
+                primaryKey = int.Parse((await command.ExecuteScalarAsync()).ToString());
+                await tran.CommitAsync();
+            }
+            catch (SqlException)
+            {
+                await tran.RollbackAsync();
+            }
+            catch (Exception)
+            {
+                await tran.RollbackAsync();
+            }
 
+            return primaryKey;
         }
     }
 }
