@@ -3,6 +3,7 @@ using Cwiczenie4_poprawa.Models.DTO;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,12 +26,23 @@ namespace Cwiczenie4_poprawa.Services
             {
                 SqlCommand com = new SqlCommand($"select * from product where IdProduct = {id}",con);
                 await con.OpenAsync();
-                SqlDataReader dr = await com.ExecuteReaderAsync();
-                while (dr.Read())
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+                try
                 {
-                    product = new Product { IdProduct = (int)dr["IdProduct"] };
+                    SqlDataReader dr = await com.ExecuteReaderAsync();
+                    while (dr.Read())
+                    {
+                        product = new Product { IdProduct = (int)dr["IdProduct"] };
+                    }
+                    await tran.CommitAsync();
+                }
+                catch(SqlException)
+                {
+                    await tran.RollbackAsync();
                 }
             }
+
             if (product.IdProduct != 0)
                 return true;
             else return false;
@@ -42,10 +54,21 @@ namespace Cwiczenie4_poprawa.Services
             {
                 SqlCommand com = new SqlCommand($"select * from warehouse where IdWarehouse = {id}", con);
                 await con.OpenAsync();
-                SqlDataReader dr = await com.ExecuteReaderAsync();
-                while (await dr.ReadAsync())
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+
+                try
                 {
-                    warehouse = new Warehouse { IdWarehouse = (int)dr["IdWarehouse"] };
+                    SqlDataReader dr = await com.ExecuteReaderAsync();
+                    while (await dr.ReadAsync())
+                    {
+                        warehouse = new Warehouse { IdWarehouse = (int)dr["IdWarehouse"] };
+                    }
+                    await tran.CommitAsync();
+                }
+                catch (SqlException)
+                {
+                    await tran.RollbackAsync();
                 }
             }
             if (warehouse.IdWarehouse != 0)
@@ -60,11 +83,23 @@ namespace Cwiczenie4_poprawa.Services
             {
                 SqlCommand com = new SqlCommand($"select * from [order]", con);
                 await con.OpenAsync();
-                SqlDataReader dr = await com.ExecuteReaderAsync();
-                while (await dr.ReadAsync())
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+
+                try
                 {
-                    orders.Add(new Order { IdOrder = (int)dr["IdOrder"], Amount = (int)dr["Amount"], IdProduct = (int)dr["IdProduct"], CreatedAt = (DateTime)dr["CreatedAt"], FulfilledAt = (DateTime)dr["FulfilledAt"] });
+                    SqlDataReader dr = await com.ExecuteReaderAsync();
+                    while (await dr.ReadAsync())
+                    {
+                        orders.Add(new Order { IdOrder = (int)dr["IdOrder"], Amount = (int)dr["Amount"], IdProduct = (int)dr["IdProduct"], CreatedAt = (DateTime)dr["CreatedAt"], FulfilledAt = (DateTime)dr["FulfilledAt"] });
+                    }
+                    await tran.CommitAsync();
                 }
+                catch(SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
+                
             }
             return orders;
         }
@@ -76,10 +111,21 @@ namespace Cwiczenie4_poprawa.Services
             {
                 SqlCommand com = new SqlCommand($"select * from product_warehouse", con);
                 await con.OpenAsync();
-                SqlDataReader dr = await com.ExecuteReaderAsync();
-                while (await dr.ReadAsync())
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+
+                try
                 {
-                    productWarehouses.Add(new ProductWarehouse { IdProductWarehouse = (int)dr["IdProductWarehouse"], IdOrder = (int)dr["IdOrder"] });
+                    SqlDataReader dr = await com.ExecuteReaderAsync();
+                    while (await dr.ReadAsync())
+                    {
+                        productWarehouses.Add(new ProductWarehouse { IdProductWarehouse = (int)dr["IdProductWarehouse"], IdOrder = (int)dr["IdOrder"] });
+                    }
+                    await tran.CommitAsync();
+                }
+                catch (SqlException)
+                {
+                    await tran.RollbackAsync();
                 }
             }
             return productWarehouses;
@@ -109,7 +155,18 @@ namespace Cwiczenie4_poprawa.Services
                 com.Parameters.AddWithValue("@param1",order.FulfilledAt);
                 com.Parameters.AddWithValue("@param2", id);
                 await con.OpenAsync();
-                await com.ExecuteNonQueryAsync();
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+
+                try
+                {
+                    await com.ExecuteNonQueryAsync();
+                    await tran.CommitAsync();
+                }
+                catch (SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
             }
         }
 
@@ -120,10 +177,21 @@ namespace Cwiczenie4_poprawa.Services
             {
                 SqlCommand com = new SqlCommand($"select * from product", con);
                 await con.OpenAsync();
-                SqlDataReader dr = await com.ExecuteReaderAsync();
-                while (await dr.ReadAsync())
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+
+                try
                 {
-                    products.Add(new Product { IdProduct = (int)dr["IdProduct"], Name = dr["Name"].ToString(), Price = (decimal)dr["Price"] });
+                    SqlDataReader dr = await com.ExecuteReaderAsync();
+                    while (await dr.ReadAsync())
+                    {
+                        products.Add(new Product { IdProduct = (int)dr["IdProduct"], Name = dr["Name"].ToString(), Price = (decimal)dr["Price"] });
+                    }
+                    await tran.CommitAsync();
+                }
+                catch (SqlException)
+                {
+                    await tran.RollbackAsync();
                 }
             }
             return products.Where(x => x.IdProduct == id).FirstOrDefault();
@@ -145,7 +213,18 @@ namespace Cwiczenie4_poprawa.Services
                 com.Parameters.AddWithValue("@param5", product.Price * newProductWarehouse.Amount);
                 com.Parameters.AddWithValue("@param6", DateTime.Now);
                 await con.OpenAsync();
-                await com.ExecuteNonQueryAsync();
+                DbTransaction tran = await con.BeginTransactionAsync();
+                com.Transaction = (SqlTransaction)tran;
+
+                try
+                {
+                    await com.ExecuteNonQueryAsync();
+                    await tran.CommitAsync();
+                }
+                catch (SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
             }
         }
 
@@ -154,6 +233,11 @@ namespace Cwiczenie4_poprawa.Services
             var productWarehouses = await GetProductsWarehousesAsync();
             var lastInt = productWarehouses.LastOrDefault().IdProductWarehouse;
             return lastInt;
+        }
+
+        public async Task AddProductByProcedureAsync()
+        {
+
         }
     }
 }
