@@ -28,16 +28,21 @@ namespace Cwiczenie4_poprawa.Services
                 await con.OpenAsync();
                 DbTransaction tran = await con.BeginTransactionAsync();
                 com.Transaction = (SqlTransaction)tran;
+                SqlDataReader dr = await com.ExecuteReaderAsync();
                 try
                 {
-                    SqlDataReader dr = await com.ExecuteReaderAsync();
                     while (dr.Read())
                     {
                         product = new Product { IdProduct = (int)dr["IdProduct"] };
                     }
+                    dr.Close();
                     await tran.CommitAsync();
                 }
                 catch(SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
+                catch (Exception)
                 {
                     await tran.RollbackAsync();
                 }
@@ -56,20 +61,26 @@ namespace Cwiczenie4_poprawa.Services
                 await con.OpenAsync();
                 DbTransaction tran = await con.BeginTransactionAsync();
                 com.Transaction = (SqlTransaction)tran;
-
+                SqlDataReader dr = await com.ExecuteReaderAsync();
                 try
                 {
-                    SqlDataReader dr = await com.ExecuteReaderAsync();
                     while (await dr.ReadAsync())
                     {
                         warehouse = new Warehouse { IdWarehouse = (int)dr["IdWarehouse"] };
                     }
+                    dr.Close();
                     await tran.CommitAsync();
+                    
                 }
                 catch (SqlException)
                 {
                     await tran.RollbackAsync();
                 }
+                catch (Exception)
+                {
+                    await tran.RollbackAsync();
+                }
+
             }
             if (warehouse.IdWarehouse != 0)
                 return true;
@@ -85,21 +96,25 @@ namespace Cwiczenie4_poprawa.Services
                 await con.OpenAsync();
                 DbTransaction tran = await con.BeginTransactionAsync();
                 com.Transaction = (SqlTransaction)tran;
-
+                SqlDataReader dr = await com.ExecuteReaderAsync();
                 try
                 {
-                    SqlDataReader dr = await com.ExecuteReaderAsync();
+                  
                     while (await dr.ReadAsync())
                     {
                         orders.Add(new Order { IdOrder = (int)dr["IdOrder"], Amount = (int)dr["Amount"], IdProduct = (int)dr["IdProduct"], CreatedAt = (DateTime)dr["CreatedAt"], FulfilledAt = (DateTime)dr["FulfilledAt"] });
                     }
+                    dr.Close();
                     await tran.CommitAsync();
                 }
                 catch(SqlException)
                 {
                     await tran.RollbackAsync();
                 }
-                
+                catch (Exception)
+                {
+                    await tran.RollbackAsync();
+                }
             }
             return orders;
         }
@@ -113,17 +128,22 @@ namespace Cwiczenie4_poprawa.Services
                 await con.OpenAsync();
                 DbTransaction tran = await con.BeginTransactionAsync();
                 com.Transaction = (SqlTransaction)tran;
-
+                SqlDataReader dr = await com.ExecuteReaderAsync();
                 try
                 {
-                    SqlDataReader dr = await com.ExecuteReaderAsync();
                     while (await dr.ReadAsync())
                     {
                         productWarehouses.Add(new ProductWarehouse { IdProductWarehouse = (int)dr["IdProductWarehouse"], IdOrder = (int)dr["IdOrder"] });
                     }
+                    dr.Close();
                     await tran.CommitAsync();
+                    
                 }
                 catch (SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
+                catch (Exception)
                 {
                     await tran.RollbackAsync();
                 }
@@ -167,6 +187,10 @@ namespace Cwiczenie4_poprawa.Services
                 {
                     await tran.RollbackAsync();
                 }
+                catch (Exception)
+                {
+                    await tran.RollbackAsync();
+                }
             }
         }
 
@@ -179,17 +203,22 @@ namespace Cwiczenie4_poprawa.Services
                 await con.OpenAsync();
                 DbTransaction tran = await con.BeginTransactionAsync();
                 com.Transaction = (SqlTransaction)tran;
-
+                SqlDataReader dr = await com.ExecuteReaderAsync();
                 try
                 {
-                    SqlDataReader dr = await com.ExecuteReaderAsync();
                     while (await dr.ReadAsync())
                     {
                         products.Add(new Product { IdProduct = (int)dr["IdProduct"], Name = dr["Name"].ToString(), Price = (decimal)dr["Price"] });
                     }
+                    dr.Close();
                     await tran.CommitAsync();
+                    
                 }
                 catch (SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
+                catch (Exception)
                 {
                     await tran.RollbackAsync();
                 }
@@ -222,6 +251,10 @@ namespace Cwiczenie4_poprawa.Services
                     await tran.CommitAsync();
                 }
                 catch (SqlException)
+                {
+                    await tran.RollbackAsync();
+                }
+                catch (Exception)
                 {
                     await tran.RollbackAsync();
                 }
