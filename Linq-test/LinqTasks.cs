@@ -261,7 +261,7 @@ namespace Linq_test
         ///     SELECT "Brak wartości", null, null;
         /// </summary>
         public static IEnumerable<object> Task10()
-        {
+        {      
             return null;
         }
 
@@ -278,7 +278,9 @@ namespace Linq_test
         /// </summary>
         public static IEnumerable<object> Task11()
         {
-            return null;
+            var result = Emps.GroupBy(x => x.Job).Select(group => new { name = group.Key, numOfEmployees = group.Count() }).OrderBy(x => x.name).Where(x => x.numOfEmployees > 1);
+
+            return result;
         }
 
         /// <summary>
@@ -302,7 +304,8 @@ namespace Linq_test
         /// </summary>
         public static int Task13(int[] arr)
         {
-            return 0;
+            var odd = arr.Count(x => x % 2 == 1);
+            return odd;
         }
 
         /// <summary>
@@ -311,7 +314,12 @@ namespace Linq_test
         /// </summary>
         public static IEnumerable<Dept> Task14()
         {
-            return null;
+            List<int?> list = new List<int?>();
+            List<Dept> depts = new List<Dept>();
+            var result = Emps.GroupBy(x => x.Deptno).Select(group => new {Deptno = group.Key, Count = group.Count()}).OrderBy(x => x.Deptno);
+            result.ToList().ForEach(x => { if (x.Count == 5 || x.Count == 0) { list.Add(x.Deptno); }});
+            list.ForEach(x => list.Add(x.Value));
+            return depts;
         }
     }
 
@@ -320,9 +328,13 @@ namespace Linq_test
         //Put your extension methods here
         public static IEnumerable<Emp> GetEmpsWithSubordinates(this IEnumerable<Emp> emps)
         {
-            // var result = emps.Where(x => x.Mgr != null).OrderBy(x => x.Salary).OrderByDescending(x => x.Ename);
-            //return result;
-            return null;
+            HashSet<Emp> empsWithSubordinates = new HashSet<Emp>();
+            foreach (var emp in emps)
+            {
+                if(emp.Mgr != null)
+                    empsWithSubordinates.Add(emp.Mgr);
+            }
+            return empsWithSubordinates.OrderBy(x => x.Ename).OrderByDescending(x => x.Salary);
         }
 
     }

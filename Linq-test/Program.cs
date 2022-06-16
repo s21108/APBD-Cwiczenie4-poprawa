@@ -10,6 +10,7 @@ namespace Linq_test
 {
     internal class Program
     {
+        public static int[] tab = { 1, 1, 1, 1, 1, 1, 10, 1, 1, 1, 1, 10, 2, 10, 10 };
         static public void Main(String[] args)
         {
             var res = LinqTasks.Task5();
@@ -33,11 +34,22 @@ namespace Linq_test
             var res9 = LinqTasks.Task9();
             Console.WriteLine("Test9: " + res9);
 
+            var res11 = LinqTasks.Task11();
+            res11.ToList().ForEach(x => Console.WriteLine(x));
+
+            Console.WriteLine("Task12");
             var res12 = LinqTasks.Task12();
             foreach (Emp emp in res12)
             {
                 Console.WriteLine(emp);
             }
+
+
+            var res13 = LinqTasks.Task13(tab);
+            Console.WriteLine("Task 13: " + res13);
+
+            Console.WriteLine("Task 14");
+            var res14 = LinqTasks.Task14();
         }
     }
 }
